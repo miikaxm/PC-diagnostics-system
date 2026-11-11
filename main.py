@@ -3,22 +3,35 @@ from engine.inventory import (
     save_hardware_info
 )
 
+from engine.test_manager import (
+    run_tests,
+    save_test_results
+)
+
 
 def main():
-    print("PC Diagnotics")
-    print("Versio: 0.2.0")
-
+    print("Tietokoneen vianmääritys")
+    print("Versio: 0.3.0")
+  
     print("\nKerätään laitteistotietoja...")
 
     information = collect_hardware_info()
+    hardware_file = save_hardware_info(information)
 
-    print("\nTietokoneen tiedot:")
-    for key, value in information.items():
-        print(f"{key}: {value}")
+    print(f"Laitteistotiedot: {hardware_file}")
+    print("\nSuoritetaan tarkistukset...")
 
-    filename = save_hardware_info(information)
+    test_run = run_tests()
 
-    print(f"\nTiedot tallennettu: {filename}")
+    for result in test_run["results"]:
+        print(
+            f"{result['test_name']}: "
+            f"{result['status']} - {result['message']}"
+        )
+
+    results_file = save_test_results(test_run)
+
+    print(f"\nTestitulokset: {results_file}")
 
 
 if __name__ == "__main__":
