@@ -11,7 +11,6 @@ from engine.test_manager import (
 
 def main():
     print("Tietokoneen vianmääritys")
-    print("Versio: 0.3.0")
   
     print("\nKerätään laitteistotietoja...")
 
