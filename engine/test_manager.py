@@ -6,11 +6,13 @@ from uuid import uuid4
 from tests.cpu.cpu_test import run_cpu_test
 from tests.memory.memory_test import run_memory_test
 from tests.storage.smart_test import run_smart_test
+from tests.cpu.cpu_stress_test import run_cpu_stress_test
 
 TESTS = {
   "cpu": run_cpu_test,
   "memory": run_memory_test,
-  "smart": run_smart_test
+  "smart": run_smart_test,
+  "cpu_stress": run_cpu_stress_test
 }
 
 def run_tests(selected_tests=None):
