@@ -8,14 +8,18 @@ from pathlib import Path
 import cpuinfo
 import psutil
 
+# Tallennetaan projekti tiedoston polku eli tämä PC-Diagnostics kansio muuttujaan
 PROJECT_FOLDER = Path(__file__).resolve().parent.parent
 
+# Apufunktio megatavujen muutoksessa gigatavuihin
 def bytes_to_gb(value):
   if value is None:
     return None
   return round(int(value) / (1024 ** 3), 2)
 
+# Apufunktio komennon ajamiselle
 def run_command(command):
+  # Suorittaa komennon 15 sekunnin aikakatkaisulla ja palauttaa komennon tulosteen merkkijonona tai None arvona, jos komento epäonnistuu tai aikakatkaistaan
   try:
     result = subprocess.run(
       command,
@@ -27,14 +31,18 @@ def run_command(command):
       check=False
     )
 
+    # Jos koodi ei ole 0 niin palautetaan None koska komento epäonnistui tässä tapauksessa
     if result.returncode != 0:
       return None
 
+    # Ylimääräiset rivinvaihdot pois
     return result.stdout.strip()
 
+  # Varaudutaan mahdollisiin virheisiin OSError, subprocess.TimeoutExpired esim. komentoa ei löytynyt, oikeudet puuttuu tai 15 sek aikaraja ylittyi
   except(OSError, subprocess.TimeoutExpired):
     return None
 
+# Linux tiedoston luku apufunktio
 def read_linux_file(filename):
   try:
     value = Path(filename).read_text(
@@ -46,40 +54,7 @@ def read_linux_file(filename):
   except(OSError, UnicodeError):
     return None
 
-def windows_cim(class_name, properties):
-  script = (
-    "[Console]::OutputEncoding = "
-    "[System.Text.UTF8Encoding]::new($false); "
-    f"Get-CimInstance -ClassName {class_name} | "
-    f"Select-Object {','.join(properties)} | "
-    "ConvertTo-Json -Depth 4 -Compress"
-  )
-
-  output = run_command([
-    "powershell.exe",
-    "-NoProfile",
-    "-NonInteractive",
-    "-Command",
-    script
-  ])
-
-  if not output:
-    return []
-
-  try:
-    data = json.loads(output)
-
-    if isinstance(data, dict):
-      return [data]
-
-    if isinstance(data, list):
-      return data
-
-  except json.JSONDecodeError:
-    pass
-
-  return []
-
+# Perustietojen haku: koneen nimi, suoritinperhe esim: AMD64, käyttöjärjestelmä, ja tarkempi versio käyttöjärjestelmästä
 def get_basic_info():
   return {
     "hostname": socket.gethostname(),
@@ -88,9 +63,12 @@ def get_basic_info():
     "os_version": platform.platform()
   }
 
+# Cpu info:n haku
 def get_cpu_info():
+  # Haetaan cpu tiedot
   processor = cpuinfo.get_cpu_info()
 
+  # Palautetaan cpu:n malli, valmistaja, ytimien ja säikeiden määrä
   return {
     "model": processor.get("brand_raw"),
     "manufacturer": processor.get("vendor_id_raw"),
@@ -98,119 +76,36 @@ def get_cpu_info():
     "logical_threads": psutil.cpu_count(logical=True)
   }
 
+# RAM muistin tiedot
 def get_memory_info():
+  # haetaan koneesta ram muistit
   memory = psutil.virtual_memory()
 
+  # Palautetaan ram muistin määrä gigatavuissa sekä moduulit (vielä tässä vaiheessa tyhjä lista)
   return {
     "total_gb": bytes_to_gb(memory.total),
     "modules": []
   }
 
+# Netti tiedot
 def get_network_info():
+  # Palauttaa listan verrkosovittimista
   return list(psutil.net_if_addrs().keys())
 
+# Akun tiedot esim. läppäreissä (Ei vielä testattu)
 def get_battery_info():
   battery = psutil.sensors_battery()
 
+  # Jos akkua ei havaittua palautetaan arvoksi None
   return {
     "detected": True if battery else None
   }
 
-def get_windows_hardware():
-  computer = windows_cim(
-    "Win32_ComputerSystem",
-    ["Manufacturer", "Model"]
-  )
-
-  board = windows_cim(
-    "Win32_BaseBoard",
-    ["Manufacturer", "Product"]
-  )
-
-  bios = windows_cim(
-    "Win32_BIOS",
-    ["Manufacturer", "SMBIOSBIOSVersion"]
-  )
-
-  memory_modules = windows_cim(
-    "Win32_PhysicalMemory",
-    ["Manufacturer", "PartNumber", "Capacity", "Speed"]
-  )
-
-  graphics = windows_cim(
-    "Win32_VideoController",
-    ["Name"]
-  )
-
-  disks = windows_cim(
-    "Win32_DiskDrive",
-    ["Model", "Size", "InterfaceType"]
-  )
-
-  return {
-    "computer": {
-      "manufacturer": (
-        computer[0].get("Manufacturer")
-        if computer else None
-      ),
-      "model": (
-        computer[0].get("Model")
-        if computer else None
-      )
-    },
-
-    "motherboard": {
-      "manufacturer": (
-        board[0].get("Manufacturer")
-        if board else None
-      ),
-      "model": (
-        board[0].get("Product")
-        if board else None
-      )
-    },
-
-    "bios": {
-      "manufacturer": (
-        bios[0].get("Manufacturer")
-        if bios else None
-      ),
-      "version": (
-        bios[0].get("SMBIOSBIOSVersion")
-        if bios else None
-      )
-    },
-
-    "memory_modules": [
-      {
-        "manufacturer": module.get("Manufacturer"),
-        "model": module.get("PartNumber"),
-        "size_gb": bytes_to_gb(
-          module.get("Capacity")
-        ),
-        "speed_mt_s": module.get("Speed")
-      }
-      for module in memory_modules
-    ],
-
-    "graphics_cards": [
-      {"model": card.get("Name")}
-      for card in graphics
-    ],
-
-    "storage_devices": [
-      {
-        "model": disk.get("Model"),
-        "size_gb": bytes_to_gb(disk.get("Size")),
-        "interface": disk.get("InterfaceType")
-      }
-      for disk in disks
-    ]
-  }
-
+# Tarkemmat laitetiedot linux komentojen avulla
 def get_linux_hardware():
   base = "/sys/class/dmi/id"
 
+  # Tietokoneen valmistaja ja malli
   computer = {
     "manufacturer": read_linux_file(
       f"{base}/sys_vendor"
@@ -220,6 +115,7 @@ def get_linux_hardware():
     )
   }
 
+  # Emolevyn valmistaja ja malli
   motherboard = {
     "manufacturer": read_linux_file(
       f"{base}/board_vendor"
@@ -229,6 +125,7 @@ def get_linux_hardware():
     )
   }
 
+  # bioksen valmistaja ja versio
   bios = {
     "manufacturer": read_linux_file(
       f"{base}/bios_vendor"
@@ -238,8 +135,10 @@ def get_linux_hardware():
     )
   }
 
+  # Tallennus laitteet (tässä vaiheessa vielä tyhjä lista)
   storage_devices = []
 
+  # Ajetaan linux komento joka hakee tallennuslaitteet json muodossa
   output = run_command([
     "lsblk",
     "--json",
@@ -251,14 +150,18 @@ def get_linux_hardware():
 
   if output:
     try:
+      # Poimitaan laitelista JSON-datasta
       devices = json.loads(output).get(
         "blockdevices", []
       )
 
+      # Käydään jokainen laite läpi
       for device in devices:
+        # Jos laite ei ole tyyppiä "disk" niin mennään seuraavaan laitteesseen
         if device.get("type") != "disk":
           continue
 
+        # Jos laite on tyyppiä disk lisätään se ja sen tiedot "storage_devices" listaan
         storage_devices.append({
           "name": device.get("name"),
           "model": device.get("model"),
@@ -268,15 +171,21 @@ def get_linux_hardware():
           "interface": device.get("tran")
         })
 
+    # Oletetaan ValueErroria ja TypeErroria
     except (ValueError, TypeError):
       pass
 
+  # Lista GPu:lle
   graphics_cards = []
 
+  # Haetaan lista PCI- väylän laitteista
   pci_output = run_command(["lspci"])
 
+  # Tarkistetaan palautettiinko mitään
   if pci_output:
+    # Käydään läpi rivi kerrallaan
     for line in pci_output.splitlines():
+      # Etsitään rivejä jotka viittaa näytönohjaimeen tai johonkin muuhun grafiikka piiriin
       if any(
         label in line
         for label in (
@@ -285,10 +194,12 @@ def get_linux_hardware():
           "Display controller"
         )
       ):
+      # lisätään graphics_cards listaan malli
         graphics_cards.append({
           "model": line
         })
 
+  # Palautetaan tiedot
   return {
     "computer": computer,
     "motherboard": motherboard,
@@ -298,9 +209,12 @@ def get_linux_hardware():
     "storage_devices": storage_devices
   }
 
+# Tietojen kasaus yhteen
 def collect_hardware_info():
+  # Järjestelmä
   system = platform.system()
 
+  # Infot
   information = {
     "timestamp": datetime.now().astimezone().isoformat(),
     "basic": get_basic_info(),
@@ -310,10 +224,9 @@ def collect_hardware_info():
     "battery": get_battery_info()
   }
 
-  if system == "Windows":
-    hardware = get_windows_hardware()
-
-  elif system == "Linux":
+  # Jos käytössä linux niin haetaan funktiolla tarkemmat tiedot muuten jätetään ne hakematta
+  if system == "Linux":
+    # Tiedot hardware muuttujaan
     hardware = get_linux_hardware()
 
   else:
@@ -326,6 +239,7 @@ def collect_hardware_info():
       "storage_devices": []
     }
 
+  # Asetetaan infoksi linux komennoilla haetut tarkat tiedot
   information["computer"] = hardware["computer"]
   information["motherboard"] = hardware["motherboard"]
   information["bios"] = hardware["bios"]
@@ -334,8 +248,10 @@ def collect_hardware_info():
   information["graphics_cards"] = hardware["graphics_cards"]
   information["storage_devices"] = hardware["storage_devices"]
 
+  # Palautetaan tiedot
   return information
 
+# Tietojen tallennus JSON tiedostoon
 def save_hardware_info(information):
   data_folder = PROJECT_FOLDER / "data"
   data_folder.mkdir(parents=True, exist_ok=True)
