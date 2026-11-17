@@ -122,7 +122,7 @@ def run_temperature_test():
             item = readings[sensor_id]
 
             item["min_c"] = min(
-              item["mic_c"], value
+              item["min_c"], value
             )
             item["max_c"] = max(
               item["max_c"], value
@@ -219,6 +219,12 @@ def run_temperature_test():
     result["status"] = "UNKNOWN"
     result["message"] = (
       "Lämpötila-antureiden tietoja ei saatu luettua"
+    )
+
+  elif errors:
+    result["status"] = "WARNING"
+    result["message"] = (
+      "Osa lämpötilamittauksista epäonnistui"
     )
 
   elif checked_limits == 0:
