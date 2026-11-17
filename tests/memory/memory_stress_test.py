@@ -28,8 +28,8 @@ def run_memory_stress_test(memory_mb=None, loops=2, timeout_seconds=1800):
     result["message"] = "Muistitesti vaatii järjestelmänvaljovan oikeudet"
     return result
 
-  # etsitään memtester ohjelma
-  memtester = "/usr/sbin/memtester"
+  # etsitään ohjelma
+  memtester = shutil.which("memtester")
 
   if not os.path.isfile(memtester):
     result["message"] = "memtester-ohjelmaa ei löytynyt"
@@ -40,11 +40,12 @@ def run_memory_stress_test(memory_mb=None, loops=2, timeout_seconds=1800):
     result["message"] = "memterter ei ole asennettu"
     return result
 
-  #Tarkistetaan asetukset
+  #Tarkistetaan asetukset. Testikierrosten määrä
   if type(loops) is not int or not 1 <= loops <= 10:
     result["message"] = "Virheellinen testikierrosten määrä"
     return result
 
+  # Aikaraja
   if type(timeout_seconds) is not int or not 60 <= timeout_seconds <= 7200:
     result["message"] = "Virheellinen aikaraja"
     return result
@@ -53,7 +54,7 @@ def run_memory_stress_test(memory_mb=None, loops=2, timeout_seconds=1800):
   memory = psutil.virtual_memory()
   available_mb = int(memory.available / (1024 ** 2))
 
-  # Testiin 50%
+  # Testiin 50% käytettävästä ramista
   safe_limit_mb = min(
     available_mb // 2,
     available_mb - 1024,
@@ -158,7 +159,7 @@ def run_memory_stress_test(memory_mb=None, loops=2, timeout_seconds=1800):
       os.killpg(process.pid, signal.SIGKILL)
       stdout, stderr = process.communicate()
 
-      # Taööennetaan testin tulosteen viimeiset 20000 merkiä
+      # Tallennetaan testin tulosteen viimeiset 20000 merkiä
       result["details"]["output"] = (
         stdout + "\n" + stderr
       )[-20000:]
