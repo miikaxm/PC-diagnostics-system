@@ -29,16 +29,11 @@ def run_memory_stress_test(memory_mb=None, loops=2, timeout_seconds=1800):
     return result
 
   # etsitään memtester ohjelma
-  memtester = shutil.which("memtester")
+  memtester = "/usr/sbin/memtester"
 
-  if memtester is None:
-    for path in (
-      "/usr/bin/memtester",
-      "/usr/sbin/memtester"
-    ):
-      if os.path.isfile(path):
-        memtester = path
-        break
+  if not os.path.isfile(memtester):
+    result["message"] = "memtester-ohjelmaa ei löytynyt"
+    return result
 
   # Jos memtestiä ei löydy ilmoitetaan siitä
   if memtester is None:
