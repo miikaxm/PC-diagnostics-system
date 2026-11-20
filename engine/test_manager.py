@@ -3,6 +3,8 @@ from datetime import datetime
 from pathlib import Path
 from uuid import uuid4
 
+#  .venv/bin/python -c 'from engine.test_manager import run_tests, save_test_results; import json; r=run_tests(["gpu_stress"]); print(json.dumps(r, indent=2, ensure_ascii=False)); print("Tallennettu:", save_test_results(r))'
+
 # Testien importit
 from tests.cpu.cpu_test import run_cpu_test
 from tests.memory.memory_test import run_memory_test
@@ -10,6 +12,7 @@ from tests.storage.smart_test import run_smart_test
 from tests.cpu.cpu_stress_test import run_cpu_stress_test
 from tests.memory.memory_stress_test import run_memory_stress_test
 from tests.cooling.temperature_test import run_temperature_test
+from tests.gpu.gpu_stress_test import run_gpu_stress_test
 
 # Ajettavat testit (tällä hetkellä kaikki voidaan myöhemmin muokata käyttöliittymästä)
 TESTS = {
@@ -18,14 +21,14 @@ TESTS = {
   "smart": run_smart_test,
   "cpu_stress": run_cpu_stress_test,
   "memory_stress": run_memory_stress_test,
-  "temperature": run_temperature_test
+  "temperature": run_temperature_test,
+  "gpu_stress": run_gpu_stress_test
 }
 
 # Testien ajo
 def run_tests(selected_tests=None):
-  #Valitaan kaikki testit jos niitä ei ole erikseen määritelty (myöhemmin käyttöliittymästä)
   if selected_tests is None:
-    selected_tests = list(TESTS.keys())
+    selected_tests = []
 
   # Lista tuloksille
   results = []
