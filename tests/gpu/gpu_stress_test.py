@@ -61,7 +61,7 @@ def run_gpu_stress_test():
       return result
   elif not os.environ.get("DISPLAY"):
     result["message"] = (
-      "X!!-näyttöyhteyttä ei ole saatavilla"
+      "X11-näyttöyhteyttä ei ole saatavilla"
     )
     return result
 
@@ -79,7 +79,7 @@ def run_gpu_stress_test():
     "tool": glmark2,
     "session_type": session_type,
     "window_size": window_size,
-    "timeout_seconds": TimeoutError,
+    "timeout_seconds": timeout_seconds,
     "duration_seconds": None,
     "exit_code": None,
     "renderer": None,
