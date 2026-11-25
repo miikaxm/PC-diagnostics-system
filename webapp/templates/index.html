@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PC Diagnostics</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+</head>
+<body>
+  <main class="container">
+    <header class="page-header">
+      <h1>PC Diagnostics</h1>
+      <p>Debian 13 - Laitteiston diagnostiikka</p>
+    </header>
+
+    <!-- Laitteiston tiedot -->
+     <section class="card">
+      <h2>Tietokoneen laitteistotiedot</h2>
+
+      <div id="hardware-info">
+        Haetaan laitteistotietoja...   
+      </div>
+     </section>
+
+    <!-- Testien valinta -->
+     <section class="card">
+      <h2>Valitse suoritettavat testit</h2>
+      <div class="test-list">
+        {% for test in tests %}
+
+        <label class="test-item">
+          <input
+            type="checkbox"
+            class="test-checkbox"
+            value="{{ test.id }}"
+            data-name="{{ test.name }}"
+          >
+
+          <span>{{ test.name }}</span>
+        </label>
+
+        {% endfor %}
+      </div>
+
+      <div class="button-group">
+        <button
+          type="button"
+          class="secondary"
+          id="select-all">
+          Valitse kaikki
+        </button>
+
+        <button
+          type="button"
+          class="secondary"
+          id="clear-all">
+          Tyhjennä valinnat
+        </button>
+
+        <button
+          type="button"
+          class="primary"
+          id="start-button">
+          Käynnistä testit
+        </button>
+      </div>
+
+      <p id="message" role="status"></p>
+     </section>
+
+     <!-- Testien eteneminen -->
+      <section class="card">
+        <h2>Testien eteneminen</h2>
+
+        <p id="status">
+          Ei käynnissä olevia testejä.
+        </p>
+
+        <p id="current-test"></p>
+
+        <div
+          class="progress-container"
+          id="progress-container"
+          role="progressbar"
+          aria-label="Testien eteneminen"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-valuenow="0">
+
+          <div id="progress-bar"></div>
+        </div>
+
+        <p id="progress-text">
+          0 / 0 testiä valmis
+        </p>
+
+        <div id="test-progress"></div>
+        <p id="saved-file"></p>
+      </section>
+
+      <!-- Testien tulokset -->
+      <section class="card">
+        <h2>Testitulokset</h2>
+        <div id="results">
+          Testejä ei ole vielä suoritettu
+        </div>
+      </section>
+
+      <!-- Ilmoitetaan että memtest86 käynnistyy boot menusta erikseen -->
+       <section class="card">
+        <h2>Perusteellinen RAM-testi</h2>
+
+        <p>
+          MemTest86+ voidaan käynnistää erikseen
+          USB-SSD:n GRUB-käynnistysvalikosta.
+        </p>
+
+        <p>
+          Sen tuloksia ei tallenneta automaattisesti
+          tähän käyttöliittymään.
+        </p>
+       </section>
+       
+  </main>
+</body>
+</html>
