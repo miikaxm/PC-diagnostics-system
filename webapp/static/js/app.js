@@ -307,15 +307,15 @@ async function loadHardwareInfo() {
 
     // Muodostetaan käyttöliittymässä näytettävät tiedot
     const hardware = [
-      ["Tietokone", computer],
-      ["Prosessori", data.cpu?.model],
-      ["RAM-muisti", data.memory?.total_gb != null
+      ["Tietokone: ", computer],
+      ["Prosessori: ", data.cpu?.model],
+      ["RAM-muisti: ", data.memory?.total_gb != null
         ? `${data.memory.total_gb} GiB`
         : null],
-      ["Emolevy", motherboard],
-      ["BIOS-versio", data.bios?.version],
-      ["Näytönohjain", graphics],
-      ["Tallennuslevyt", storage]
+      ["Emolevy: ", motherboard],
+      ["BIOS-versio: ", data.bios?.version],
+      ["Näytönohjain: ", graphics],
+      ["Tallennuslevyt: ", storage]
     ];
 
     // Tyhjennetään vanhat tiedot
