@@ -262,6 +262,7 @@ clearAllButton.addEventListener("click", clearAll);
 startButton.addEventListener("click", startTests);
 
 // Haetaan tietokoneen laitteistotiedot
+
 async function loadHardwareInfo() {
   const hardwareInfo = document.getElementById("hardware-info");
 
@@ -273,43 +274,54 @@ async function loadHardwareInfo() {
       throw new Error(data.error || "Laitteistotietoja ei saatu.");
     }
 
-    // Muodostetaan laitteistotiedot
+    // Yhdistetään tietokoneen valmistaja ja malli
     const computer = [
       data.computer?.manufacturer,
       data.computer?.model
     ].filter(Boolean).join(" ");
 
+    // Yhdistetään emolevyn valmistaja ja malli
     const motherboard = [
       data.motherboard?.manufacturer,
       data.motherboard?.model
     ].filter(Boolean).join(" ");
 
+    // Haetaan näytönohjaimet model-kentästä
     const graphics = (data.graphics_cards || [])
-      .map(card => card.description)
+      .map(card => card.model)
       .filter(Boolean)
       .join(", ");
 
+    // Haetaan tallennuslevyjen nimet ja kapasiteetit
     const storage = (data.storage_devices || [])
-      .map(disk =>
-        `${disk.model || disk.name} (${disk.size_gib} GiB)`
-      )
+      .map(disk => {
+        const name = disk.model || disk.name || "Tuntematon levy";
+
+        const size = disk.size_gb != null
+          ? `${disk.size_gb} GiB`
+          : "Koko ei saatavilla";
+
+        return `${name} (${size})`;
+      })
       .join(", ");
 
+    // Muodostetaan käyttöliittymässä näytettävät tiedot
     const hardware = [
-      ["Tietokone: ", computer],
-      ["Prosessori: ", data.cpu?.model],
-      ["RAM-muisti: ", data.memory?.total_gib != null
-        ? `${data.memory.total_gib} GiB`
+      ["Tietokone", computer],
+      ["Prosessori", data.cpu?.model],
+      ["RAM-muisti", data.memory?.total_gb != null
+        ? `${data.memory.total_gb} GiB`
         : null],
-      ["Emolevy: ", motherboard],
-      ["BIOS-versio: ", data.bios?.version],
-      ["Näytönohjain: ", graphics],
-      ["Tallennuslevyt: ", storage]
+      ["Emolevy", motherboard],
+      ["BIOS-versio", data.bios?.version],
+      ["Näytönohjain", graphics],
+      ["Tallennuslevyt", storage]
     ];
 
+    // Tyhjennetään vanhat tiedot
     hardwareInfo.replaceChildren();
 
-    // Lisätään tiedot sivulle turvvalisesti tekstinä
+    // Lisätään laitteistotiedot sivulle
     for (const [name, value] of hardware) {
       const row = document.createElement("div");
       row.className = "hardware-row";
@@ -323,6 +335,7 @@ async function loadHardwareInfo() {
       row.append(label, information);
       hardwareInfo.appendChild(row);
     }
+
   } catch (error) {
     hardwareInfo.textContent = error.message;
   }
