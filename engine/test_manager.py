@@ -3,8 +3,6 @@ from datetime import datetime
 from pathlib import Path
 from uuid import uuid4
 
-#  .venv/bin/python -c 'from engine.test_manager import run_tests, save_test_results; import json; r=run_tests(["gpu_stress"]); print(json.dumps(r, indent=2, ensure_ascii=False)); print("Tallennettu:", save_test_results(r))'
-
 # Testien importit
 from tests.cpu.cpu_test import run_cpu_test
 from tests.memory.memory_test import run_memory_test
@@ -97,5 +95,5 @@ def save_test_results(test_run):
       ensure_ascii=False
     )
 
-  # aplautetaan tiedoston polku
+  # Palautetaan tiedoston polku
   return filename

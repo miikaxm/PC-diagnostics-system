@@ -1,10 +1,11 @@
+# Importit
 import json
 import os
 import re
 import subprocess
 from pathlib import Path
 
-# Debianin omien osioiden liitospisteet (mahdollisesti pitää vielä vaihtaa)
+# Debianin omien osioiden liitospisteet
 PROTECTED_MOUNTS = {
   "/",
   "/boot/efi",

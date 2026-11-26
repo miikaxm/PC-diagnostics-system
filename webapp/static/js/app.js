@@ -22,6 +22,12 @@ const smartOptions = document.getElementById("smart-options");
 const smartDevice = document.getElementById("smart-device");
 const smartDeviceMessage = document.getElementById("smart-device-message");
 
+const historyList = document.getElementById("history-list");
+const historyMessage = document.getElementById("history-message");
+const historyDetails = document.getElementById("history-details");
+const historyDetailsContent = document.getElementById("history-details-content");
+const refreshHistoryButton = document.getElementById("refresh-history");
+
 // Palauttaa testien valintaruudut
 function getCheckBoxes() {
   return Array.from(
@@ -73,6 +79,248 @@ function setRunning(running) {
     box.disabled = running;
   });
 }
+
+function formatHistoryDate(value) {
+  if (!value) {
+    return "Tuntematon ajankohta";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleString("fi-FI");
+}
+
+
+function createHistoryText(tagName, text, className = "") {
+  const element = document.createElement(tagName);
+  element.textContent = String(text ?? "");
+
+  if (className) {
+    element.className = className;
+  }
+
+  return element;
+}
+
+
+function createHistoryDetail(label, value) {
+  const row = document.createElement("div");
+  row.className = "history-detail-row";
+
+  row.appendChild(
+    createHistoryText("strong", label)
+  );
+
+  row.appendChild(
+    createHistoryText("span", value ?? "Ei tietoa")
+  );
+
+  return row;
+}
+
+
+async function loadHistory() {
+  historyMessage.textContent = "Haetaan testihistoriaa...";
+  historyList.replaceChildren();
+
+  try {
+    const response = await fetch("/api/history");
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.error || "Testihistorian hakeminen epäonnistui"
+      );
+    }
+
+    const runs = data.runs || [];
+
+    if (runs.length === 0) {
+      historyMessage.textContent =
+        "Aikaisempia diagnostiikkakertoja ei vielä ole.";
+      historyDetails.hidden = true;
+      return;
+    }
+
+    historyMessage.textContent =
+      `Tallennettuja testikertoja: ${runs.length}`;
+
+    for (const run of runs) {
+      const item = document.createElement("div");
+      item.className = "history-item";
+
+      const info = document.createElement("div");
+      info.className = "history-item-info";
+
+      info.appendChild(
+        createHistoryText(
+          "strong",
+          run.hostname || "Tuntematon tietokone"
+        )
+      );
+
+      info.appendChild(
+        createHistoryText(
+          "span",
+          formatHistoryDate(run.started_at)
+        )
+      );
+
+      info.appendChild(
+        createHistoryText(
+          "span",
+          `Testejä: ${run.test_count}`
+        )
+      );
+
+      const actions = document.createElement("div");
+      actions.className = "history-item-actions";
+
+      const status = createHistoryText(
+        "span",
+        run.status,
+        "history-status"
+      );
+
+      status.dataset.status = run.status;
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = "Näytä tulokset";
+
+      button.addEventListener("click", () => {
+        loadHistoryDetails(run.run_id);
+      });
+
+      actions.appendChild(status);
+      actions.appendChild(button);
+
+      item.appendChild(info);
+      item.appendChild(actions);
+
+      historyList.appendChild(item);
+    }
+
+  } catch (error) {
+    historyMessage.textContent = error.message;
+  }
+}
+
+
+async function loadHistoryDetails(runId) {
+  historyDetails.hidden = false;
+  historyDetailsContent.replaceChildren();
+
+  historyDetailsContent.appendChild(
+    createHistoryText("p", "Haetaan testikerran tietoja...")
+  );
+
+  try {
+    const response = await fetch(
+      `/api/history/${encodeURIComponent(runId)}`
+    );
+
+    const run = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        run.error || "Testikerran hakeminen epäonnistui"
+      );
+    }
+
+    historyDetailsContent.replaceChildren();
+
+    historyDetailsContent.appendChild(
+      createHistoryDetail(
+        "Tietokone",
+        run.hostname || "Tuntematon"
+      )
+    );
+
+    historyDetailsContent.appendChild(
+      createHistoryDetail(
+        "Aloitusaika",
+        formatHistoryDate(run.timestamp)
+      )
+    );
+
+    historyDetailsContent.appendChild(
+      createHistoryDetail(
+        "Valmistumisaika",
+        formatHistoryDate(run.finished_at)
+      )
+    );
+
+    historyDetailsContent.appendChild(
+      createHistoryDetail(
+        "Yhteenveto",
+        run.status
+      )
+    );
+
+    for (const result of run.results) {
+      const card = document.createElement("div");
+      card.className = "history-result-card";
+
+      card.appendChild(
+        createHistoryText(
+          "h4",
+          result.test_name
+        )
+      );
+
+      const status = createHistoryText(
+        "span",
+        result.status,
+        "history-status"
+      );
+
+      status.dataset.status = result.status;
+      card.appendChild(status);
+
+      card.appendChild(
+        createHistoryText(
+          "p",
+          result.message
+        )
+      );
+
+      const details = document.createElement("details");
+      const summary = document.createElement("summary");
+      summary.textContent = "Näytä mittaustiedot";
+
+      const pre = createHistoryText(
+        "pre",
+        JSON.stringify(result.details, null, 2)
+      );
+
+      details.appendChild(summary);
+      details.appendChild(pre);
+
+      card.appendChild(details);
+      historyDetailsContent.appendChild(card);
+    }
+
+  } catch (error) {
+    historyDetailsContent.replaceChildren();
+
+    historyDetailsContent.appendChild(
+      createHistoryText("p", error.message)
+    );
+  }
+}
+
+
+refreshHistoryButton.addEventListener(
+  "click",
+  loadHistory
+);
+
+loadHistory();
 
 // Näytetään levyvalitsin vain smart-testin ollessa valittu
 function updateSmartVisibility() {

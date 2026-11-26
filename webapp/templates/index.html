@@ -120,21 +120,42 @@
         </div>
       </section>
 
-      <!-- Ilmoitetaan että memtest86 käynnistyy boot menusta erikseen -->
-       <section class="card">
-        <h2>Perusteellinen RAM-testi</h2>
+       <!-- Testihistoria ja testien tarkemmat tiedot -->
+       <section id="history-section" class="history-section">
+        <h2>Aikaisemmat Testikerrat</h2>
 
+        <p>
+          Tästä näet tietokantaan tallennetut testikerrat ja niiden tulokset.
+        </p>
+
+        <button id="refresh-history" type="button">
+          Päivitä testihistoria
+        </button>
+
+        <p id="history-message"></p>
+
+        <div id="history-list"></div>
+
+        <div id="history-details">
+          <h3>Testikerran tarkemmat tiedot</h3>
+          <div id="history-details-content"></div>
+        </div>
+       </section>
+
+      <!-- Ilmoitetaan että memtest86 käynnistyy boot menusta erikseen -->
+      <section class="card">
+        <h2>Perusteellinen RAM-testi</h2>
+      
         <p>
           MemTest86+ voidaan käynnistää erikseen
           USB-SSD:n GRUB-käynnistysvalikosta.
         </p>
-
+      
         <p>
           Sen tuloksia ei tallenneta automaattisesti
           tähän käyttöliittymään.
         </p>
-       </section>
-       
+      </section>
   </main>
 </body>
 </html>

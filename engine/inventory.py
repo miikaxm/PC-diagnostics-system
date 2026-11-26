@@ -1,3 +1,4 @@
+# Importit
 import json
 import platform
 import socket
@@ -258,6 +259,7 @@ def save_hardware_info(information):
 
   filename = data_folder / "hardware_info.json"
 
+  # Tiedoston kirjoitus
   with filename.open("w", encoding="utf-8") as file:
     json.dump(
       information,
