@@ -10,6 +10,11 @@ from engine.test_manager import (
   save_test_results
 )
 
+from engine.storage_devices import (
+  list_smart_disks,
+  get_selected_disk
+)
+
 app = Flask(__name__)
 
 # Käyttöliittymässä näytettävät testien nimet
@@ -40,7 +45,7 @@ test_state = {
 state_lock = threading.Lock()
 
 
-def execute_tests(selected_tests, run_id, timestamp):
+def execute_tests(selected_tests, run_id, timestamp, smart_device):
   # Lista testien tuloksille
   results = []
 
@@ -53,7 +58,7 @@ def execute_tests(selected_tests, run_id, timestamp):
         test_state["current_test"] = test_name
 
       # Suoritetaan testi lukituksen ulkopuolella
-      test_run = run_tests([test_name])
+      test_run = run_tests([test_name], smart_device=smart_device)
       results.extend(test_run["results"])
 
       # Päivitetään valmistuneiden testien määrä
@@ -128,6 +133,23 @@ def start_tests():
 
   run_id = str(uuid4())
   timestamp = datetime.now().astimezone().isoformat()
+  smart_device = None
+
+  if "smart" in selected:
+    try:
+      selected_disk = get_selected_disk(data.get("smart_device"))
+
+      smart_device = selected_disk["id"]
+
+    except ValueError as error:
+      return jsonify({
+        "error": str(error)
+      }), 400
+
+    except Exception as error:
+      return jsonify({
+        "error": f"Levyjen tunnistus epäonnistui: {error}"
+      })
 
   with state_lock:
     if test_state["status"] == "running":
@@ -151,7 +173,7 @@ def start_tests():
     # suoritetaan testi erillisessä säikeessä
     worker = threading.Thread(
       target=execute_tests,
-      args=(selected, run_id, timestamp),
+      args=(selected, run_id, timestamp, smart_device),
       daemon=True
     )
 
@@ -195,6 +217,22 @@ def get_hardware():
   except Exception as error:
     return jsonify({
       "error": f"Laitteistotietoja ei saatu: {error}"
+    }), 503
+
+# käytettävissä olevien levyjen haku
+@app.route("/api/disks")
+def get_disks():
+  # haetaan valittavissa olevat levyt ensin
+  try:
+    disks = list_smart_disks()
+
+    return jsonify({
+      "disks": disks
+    })
+
+  except Exception as error:
+    return jsonify({
+      "error": f"Levyjä ei saatu tunnistettua: {error}"
     }), 503
 
 if __name__ == "__main__":

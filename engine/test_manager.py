@@ -26,7 +26,7 @@ TESTS = {
 }
 
 # Testien ajo
-def run_tests(selected_tests=None):
+def run_tests(selected_tests=None, smart_device=None):
   if selected_tests is None:
     selected_tests = []
 
@@ -51,7 +51,11 @@ def run_tests(selected_tests=None):
 
     # Suoritetaan testi
     try:
-      result = test_function()
+      if test_name == "smart":
+        result = test_function(device_path=smart_device)
+      else:
+        result = test_function()
+
       results.append(result)
     except Exception as error:
       # Jos testi esim. kaatuu niin tallennetaan virheen tiedot

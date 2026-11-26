@@ -1,13 +1,16 @@
+
 import json
 import os
 import platform
 import stat
 import subprocess
 
-def run_smart_test():
+from engine.storage_devices import get_selected_disk
+
+def run_smart_test(device_path=None):
   # Tulokset
   result = {
-    "test_id": "storage_smart",
+    "test_id": "smart",
     "test_name": "Storage SMART Health",
     "status": "UNKNOWN",
     "message": "",
@@ -19,23 +22,30 @@ def run_smart_test():
     result["message"] = "SMART-testi vaatii Linuxin"
     return result
 
-  # Tarkistettava laite annetaan tällä hetkellä erikseen komentoriville komenolla PC_DIAGNOSTICS_SMART_DEVICE=/levyt/levy
-  # sudo env PC_DIAGNOSTICS_SMART_DEVICE=/dev/sdb .venv/bin/python main.py
-  device = os.environ.get("PC_DIAGNOSTICS_SMART_DEVICE")
+  if not device_path:
+    result["message"] = "SMART-testille ei valittu levyä"
+    return result
 
-  # Jos tarkistettavaa levyä ei anneta niin ilmoitetaan siitä tulokseen
-  if not device:
-    result["message"] = "Testattavaa levyä ei ole valittu"
+  try:
+    # Varmistetaan että levy on hyvä
+    selected_disk = get_selected_disk(device_path)
+    device_path = selected_disk["id"]
+
+  except (ValueError, OSError, RuntimeError) as error:
+    result["message"] = (
+      f"SMART-testin levyvalinta epäonnistui: {error}"
+    )
     return result
 
   try:
     # Haetaan laitteen polku ja infot
-    device_path = os.path.realpath(device)
-    device_info = os.stat(device_path)
+    device_path = os.path.realpath(device_path)
 
     # Jos laitepolku ei ala /dev/ ilmoitetaan siitä
     if not device_path.startswith("/dev/"):
       raise ValueError("Virheellinen laitepolku")
+
+    device_info = os.stat(device_path)
 
     # Tarkistaa onko laite lohkolaite eli esim. kiintoly, ssd, tai usb
     if not stat.S_ISBLK(device_info.st_mode):
@@ -50,7 +60,7 @@ def run_smart_test():
   try:
     # Ajetaan testi sovellus komenolla
     completed = subprocess.run(
-      ["smartctl", "--all", "--json", device_path],
+      ["/usr/sbin/smartctl", "--all", "--json", device_path],
       capture_output=True,
       text=True,
       timeout=60,
@@ -64,13 +74,13 @@ def run_smart_test():
     exit_code = completed.returncode
 
     # Otetaan smart_status ja testin passed tulos talteen
-    smart_status = data.get("smart_status", {})
+    smart_status = data.get("smart_status") or {}
     passed = smart_status.get("passed")
 
     # Otetaan nvme terveys data talteen
     nvme_health = data.get(
-      "nvme_smart_helath_information_log", {}
-    )
+      "nvme_smart_health_information_log"
+    ) or {}
 
     critical_warning = nvme_health.get("critical_warning")
 
@@ -97,6 +107,7 @@ def run_smart_test():
     # Negatiivinen exit koodi meinaa että testin prosessi keskeytyi
     # Exit koodin bittien tarkistus 1 (komentovirhe), 2 (laite ei aukea tai ei ole oikeuksia) ja 4 (SMART komento epäonnistui)
     elif exit_code < 0 or exit_code & (1 | 2 | 4):
+      result["status"] = "UNKNOWN"
       result["message"] = (
         "SMART-tietoja ei saatu luettua luotettavasti"
       )
@@ -108,7 +119,7 @@ def run_smart_test():
 
     # Jos saadaan testin NVMe terveyden tiedoista jokin kriittinen varoitus niin varoitetaan siitä tuloksessa
     elif isinstance(critical_warning, int) and critical_warning != 0:
-      result["status"] = "WARNING",
+      result["status"] = "WARNING"
       result["message"] = "NVMe-levy ilmoittaa varoituksesta"
 
     # Jos testi antaa tuloksissa "passed" parametrin hyväksytyksi niin ilmoitetaan että kaikki OK 
@@ -118,6 +129,7 @@ def run_smart_test():
 
     # Muulloin ilmoitetaan että terveydentilaa ei voitu määrittää
     else:
+      result["status"] = "UNKNOWN"
       result["message"] = "SMART-terveystilaa ei voitu määrittää"
 
   # Oletetaan FileNotFoundErroria ilmoitetaan tuloksessa (Ohjelma ei löytynyt)

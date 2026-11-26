@@ -43,6 +43,19 @@
         {% endfor %}
       </div>
 
+      <!-- Levyn valinta -->
+       <div id="smart-options" class="smart-options" hidden>
+        <label for="smart-device">
+          Valitse SMART-testissä käytettävä levy
+        </label>
+
+        <select id="smart-device">
+          <option value="">Haetaan levyjä...</option>
+        </select>
+
+        <p id="smart-device-message"></p>
+       </div>
+
       <div class="button-group">
         <button
           type="button"

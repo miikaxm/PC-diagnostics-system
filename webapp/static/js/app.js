@@ -1,4 +1,3 @@
-
 "use strict";
 
 // Haetaan elementit
@@ -14,6 +13,14 @@ const progressText = document.getElementById("progress-text");
 const testProgress = document.getElementById("test-progress");
 const resultsContainer = document.getElementById("results");
 const savedFileText = document.getElementById("saved-file");
+
+const smartCheckbox = document.querySelector(
+  '.test-checkbox[value="smart"]'
+)
+
+const smartOptions = document.getElementById("smart-options");
+const smartDevice = document.getElementById("smart-device");
+const smartDeviceMessage = document.getElementById("smart-device-message");
 
 // Palauttaa testien valintaruudut
 function getCheckBoxes() {
@@ -36,6 +43,8 @@ function selectAll() {
   getCheckBoxes().forEach(box => {
     box.checked = true;
   });
+
+  updateSmartVisibility()
 }
 
 // Tyhjennetään testien valinnat
@@ -43,6 +52,8 @@ function clearAll() {
   getCheckBoxes().forEach(box => {
     box.checked = false;
   });
+
+  updateSmartVisibility()
 }
 
 // Haetaan valitut testit
@@ -63,12 +74,78 @@ function setRunning(running) {
   });
 }
 
+// Näytetään levyvalitsin vain smart-testin ollessa valittu
+function updateSmartVisibility() {
+  smartOptions.hidden = !smartCheckbox.checked;
+}
+
+// Haetaan valittavissa olevat levyt
+async function loadSmartDisks() {
+  smartDevice.disabled = true
+  smartDevice.replaceChildren()
+
+  const placeholder = document.createElement("option")
+  placeholder.value = ""
+  placeholder.textContent = "Haetaan tallennuslevyjä..."
+
+  smartDevice.appendChild(placeholder)
+
+  try {
+    const response = await fetch("/api/disks")
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(
+        data.error || "Tallennuslevyjä ei saatu haettua"
+      );
+    }
+
+    smartDevice.replaceChildren();
+
+    const firstOption = document.createElement("option")
+    firstOption.value = ""
+    firstOption.textContent = "Valitse levy"
+
+    smartDevice.appendChild(firstOption)
+
+    for (const disk of data.disks) {
+      const option = document.createElement("option")
+
+      option.value = disk.id;
+
+      const size = disk.size_gib != null
+        ? `${disk.size_gib} GiB`
+        : "Tuntematon koko";
+      
+      option.textContent =
+        `${disk.model} - ${size} - ${disk.interface}`;
+      
+      smartDevice.appendChild(option)
+    }
+
+    smartDevice.disabled = data.disks.length === 0;
+
+    smartDeviceMessage.textContent = data.disks.length > 0
+      ? "Debianin käynnistyslevy on rajattu pois."
+      : "Valittavia tallennuslevyjä ei löytynyt."
+    
+  } catch (error) {
+    smartDeviceMessage.textContent = error.message;
+  }
+}
+
 // Käynnistetään valitut testit Flaskin kautta
 async function startTests() {
   const selected = getSelectedTests();
 
   if (selected.length === 0) {
     message.textContent = "Valitse vähintään yksi testi.";
+    return;
+  }
+
+  // smart-testi vaatii valitun levyn
+  if (selected.includes("smart") && !smartDevice.value) {
+    message.textContent = "Valitse ensin tarkistettava levy.";
     return;
   }
 
@@ -82,7 +159,10 @@ async function startTests() {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        selected_tests: selected
+        selected_tests: selected,
+        smart_device: selected.includes("smart")
+          ? smartDevice.value
+          : null
       })
     });
 
@@ -260,6 +340,10 @@ async function updateStatus() {
 selectAllButton.addEventListener("click", selectAll);
 clearAllButton.addEventListener("click", clearAll);
 startButton.addEventListener("click", startTests);
+smartCheckbox.addEventListener(
+  "change",
+  updateSmartVisibility
+);
 
 // Haetaan tietokoneen laitteistotiedot
 
@@ -343,6 +427,8 @@ async function loadHardwareInfo() {
 
 // haetaan tiedot
 loadHardwareInfo()
+updateSmartVisibility();
+loadSmartDisks();
 
 // Päivitetään testien tilanne kahden sekunnin välein
 setInterval(updateStatus, 2000);
