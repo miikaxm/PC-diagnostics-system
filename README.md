@@ -22,7 +22,3 @@ diagnostiikkajärjestelmä.
 ## Kehitysympäristö
 
 Windows 11 ja Visual Studio Code
-
-## Versio
-
-0.1.0 – Projektin perusrakenne
