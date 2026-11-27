@@ -4,8 +4,6 @@ from pathlib import Path
 from uuid import uuid4
 
 # Testien importit
-from tests.cpu.cpu_test import run_cpu_test
-from tests.memory.memory_test import run_memory_test
 from tests.storage.smart_test import run_smart_test
 from tests.cpu.cpu_stress_test import run_cpu_stress_test
 from tests.memory.memory_stress_test import run_memory_stress_test
@@ -14,8 +12,6 @@ from tests.gpu.gpu_stress_test import run_gpu_stress_test
 
 # Ajettavat testit (tällä hetkellä kaikki voidaan myöhemmin muokata käyttöliittymästä)
 TESTS = {
-  "cpu": run_cpu_test,
-  "memory": run_memory_test,
   "smart": run_smart_test,
   "cpu_stress": run_cpu_stress_test,
   "memory_stress": run_memory_stress_test,
