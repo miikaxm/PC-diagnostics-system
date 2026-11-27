@@ -80,6 +80,7 @@ function setRunning(running) {
   });
 }
 
+// Ajankohdat selkeästi suomalaiseen muotoon
 function formatHistoryDate(value) {
   if (!value) {
     return "Tuntematon ajankohta";
@@ -93,7 +94,6 @@ function formatHistoryDate(value) {
 
   return date.toLocaleString("fi-FI");
 }
-
 
 function createHistoryText(tagName, text, className = "") {
   const element = document.createElement(tagName);
@@ -122,15 +122,17 @@ function createHistoryDetail(label, value) {
   return row;
 }
 
-
+// Ladataan aiemmat testitulokset käyttöliittymään näkyviin
 async function loadHistory() {
   historyMessage.textContent = "Haetaan testihistoriaa...";
   historyList.replaceChildren();
 
   try {
+    // Haetaan testihistoria
     const response = await fetch("/api/history");
     const data = await response.json();
 
+    // Jos hakeminen ei onnistu ilmoitetaan siitä
     if (!response.ok) {
       throw new Error(
         data.error || "Testihistorian hakeminen epäonnistui"
@@ -139,6 +141,7 @@ async function loadHistory() {
 
     const runs = data.runs || [];
 
+    // Jos testikertoja ei vielä ole niin ilmoitetaan siitä
     if (runs.length === 0) {
       historyMessage.textContent =
         "Aikaisempia diagnostiikkakertoja ei vielä ole.";
@@ -146,9 +149,11 @@ async function loadHistory() {
       return;
     }
 
+    // asetetaan historyMessage elementin tekstiksti aiempien testikertojen määrä
     historyMessage.textContent =
       `Tallennettuja testikertoja: ${runs.length}`;
 
+    // Käydään kaikki testikerrat läpi ja tehdään niille omat html elementit
     for (const run of runs) {
       const item = document.createElement("div");
       item.className = "history-item";
@@ -156,6 +161,7 @@ async function loadHistory() {
       const info = document.createElement("div");
       info.className = "history-item-info";
 
+      // Lisätään tietokone nimi, aloitusaika ja testien määrä
       info.appendChild(
         createHistoryText(
           "strong",
@@ -186,12 +192,15 @@ async function loadHistory() {
         "history-status"
       );
 
+      // Asetetaan testikerran status esim. PASS
       status.dataset.status = run.status;
 
+      // Näpppi testikerran tarkemmille tiedoille
       const button = document.createElement("button");
       button.type = "button";
       button.textContent = "Näytä tulokset";
 
+      // Ladataan testikerran tarkemmat tiedot kun nappia painetaan
       button.addEventListener("click", () => {
         loadHistoryDetails(run.run_id);
       });
@@ -210,8 +219,9 @@ async function loadHistory() {
   }
 }
 
-
+// Ladataan testikerran tarkemmat tiedot
 async function loadHistoryDetails(runId) {
+  // Asetetaan tarkemmat tiedot näkyväksi
   historyDetails.hidden = false;
   historyDetailsContent.replaceChildren();
 
@@ -220,12 +230,14 @@ async function loadHistoryDetails(runId) {
   );
 
   try {
+    // Haetaan tarkemmat tiedot
     const response = await fetch(
       `/api/history/${encodeURIComponent(runId)}`
     );
 
     const run = await response.json();
 
+    // Jos haku ei onnistu ilmoitetaan siitä
     if (!response.ok) {
       throw new Error(
         run.error || "Testikerran hakeminen epäonnistui"
@@ -234,6 +246,7 @@ async function loadHistoryDetails(runId) {
 
     historyDetailsContent.replaceChildren();
 
+    // Asetetaan tietokoneen malli, aloitusaika, valmistumisaika sekä yhteenveto statuksesta
     historyDetailsContent.appendChild(
       createHistoryDetail(
         "Tietokone",
@@ -262,10 +275,12 @@ async function loadHistoryDetails(runId) {
       )
     );
 
+    // Käydään jokainen tulos läpi ja luodaan niistä html elementit
     for (const result of run.results) {
       const card = document.createElement("div");
       card.className = "history-result-card";
 
+      // Testin nimi
       card.appendChild(
         createHistoryText(
           "h4",
@@ -273,6 +288,7 @@ async function loadHistoryDetails(runId) {
         )
       );
 
+      // Testin status
       const status = createHistoryText(
         "span",
         result.status,
@@ -282,6 +298,7 @@ async function loadHistoryDetails(runId) {
       status.dataset.status = result.status;
       card.appendChild(status);
 
+      // Testin tuloksen viesti
       card.appendChild(
         createHistoryText(
           "p",
@@ -293,6 +310,7 @@ async function loadHistoryDetails(runId) {
       const summary = document.createElement("summary");
       summary.textContent = "Näytä mittaustiedot";
 
+      // Tarkemmat yksittäisen testin tiedot
       const pre = createHistoryText(
         "pre",
         JSON.stringify(result.details, null, 2)
@@ -314,7 +332,7 @@ async function loadHistoryDetails(runId) {
   }
 }
 
-
+// Refresh nappi päivittää testikertojen historia
 refreshHistoryButton.addEventListener(
   "click",
   loadHistory
